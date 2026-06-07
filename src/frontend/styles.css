@@ -1,0 +1,164 @@
+/* src/frontend/styles.css */
+
+/* Global Cleanups */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #0b0f19;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 9:16 Portrait Cinema Frame Workspace Layout */
+#container {
+    position: relative;
+    width: 1080px;
+    height: 1920px;
+    margin: 0 auto;
+    background: #000;
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background: #11141c;
+}
+
+/* --- Update these exact blocks inside src/frontend/styles.css --- */
+
+.photo-card {
+    position: absolute;
+    width: 620px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(30px) saturate(190%);
+    -webkit-backdrop-filter: blur(30px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 36px;
+    padding: 24px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.35);
+    z-index: 5000;
+
+    /* 💎 Hardware acceleration layer trigger */
+    will-change: opacity, transform; 
+    
+    /* 🎬 Base state is completely hidden */
+    opacity: 0;
+    transform: scale(0.63) translateY(30px);
+    
+    /* Smooth transition parameters */
+    transition: opacity 300ms cubic-bezier(0.25, 1, 0.5, 1), 
+                transform 300ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 🏁 ENTRANCE STATE */
+.photo-card.active {
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+}
+
+/* 🏁 EXIT STATE */
+.photo-card.fading-out {
+    /* 🌟 Force the target properties at the end of the fade */
+    opacity: 0 !important;
+    transform: scale(0.96) translateY(-30px) !important;
+    
+    /* Block any pointer interactions while it disappears */
+    pointer-events: none !important; 
+    
+    /* 🔥 THE FIX: Explicitly assign an active transition right here to handle the exit phase */
+    transition: all 0.3s ease-in-out;
+}
+
+
+/* Layout Spatial Corner Anchors */
+.pos-top-right    { top: 140px; right: 50px; }
+.pos-top-left     { top: 140px; left: 50px; }
+.pos-bottom-right { bottom: 140px; right: 50px; }
+
+/* Dynamic Image Presentation Grid */
+.gallery-grid { display: grid; gap: 16px; width: 100%; }
+.grid-1 { grid-template-columns: 1fr; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; }
+.grid-3 .main-photo { grid-row: span 2; }
+
+.gallery-img {
+    width: 100%;
+    height: 340px; /* Increased image height footprint */
+    object-fit: cover;
+    border-radius: 22px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.grid-3 .sub-photo { height: 162px; }
+
+/* High-End Editorial Typography Panel */
+.metadata-panel { 
+    margin-top: 22px; 
+    text-align: center; 
+}
+
+.town-title {
+    font-size: 38px;
+    font-weight: 800;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 3px; /* Tracked headings look high-end */
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+}
+
+.date-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 8px;
+    opacity: 0.8;
+}
+/* Add these lines to the bottom of src/frontend/styles.css */
+
+/* Vehicle Layer Configurations */
+.vehicle-marker-container {
+    background: transparent !important;
+    border: none !important;
+}
+
+#car-pointer {
+    width: 26px; 
+    height: 26px; 
+    background: #ff2d55; 
+    border: 3px solid #ffffff; 
+    border-radius: 50%; 
+    box-shadow: 0 0 20px #ff2d55, 0 4px 10px rgba(0,0,0,0.4);
+    position: relative;
+    /* ❌ NO CSS TRANSFORMS OR TRANSITIONS IN JS MAIN THREAD ALLOWED HERE */
+}
+
+/* Directional Arrow Head Indicator */
+.car-pointer-directional-arrow {
+    position: absolute; 
+    top: -8px; 
+    left: 7px; 
+    width: 6px; 
+    height: 6px; 
+    background: #ffffff; 
+    border-radius: 50%;
+    box-shadow: 0 0 6px #ffffff;
+}
+
+/* Ensure this is inside src/frontend/styles.css */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1080px;
+    height: 1920px;
+    pointer-events: none; /* Prevents the layer from blocking map interactions */
+    z-index: 999; /* Forces it perfectly over the Leaflet map view canvas */
+}

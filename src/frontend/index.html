@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinematic Road Trip Mapper (Open Source Engine)</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<style>
+
+.photo-card {
+    position: absolute;
+    width: 620px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(30px) saturate(190%);
+    -webkit-backdrop-filter: blur(30px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 36px;
+    padding: 24px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.35);
+    z-index: 5000;
+
+    /* 💎 Hardware acceleration layer trigger */
+    will-change: opacity, transform; 
+    
+    /* 🎬 Base state is completely hidden */
+    opacity: 0;
+    transform: scale(0.93) translateY(30px);
+    
+    /* Smooth transition parameters */
+    transition: opacity 300ms cubic-bezier(0.25, 1, 0.5, 1), 
+                transform 300ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 🏁 ENTRANCE STATE */
+.photo-card.active {
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+}
+
+
+/* 🏁 EXIT STATE */
+.photo-card.fading-out {
+    opacity: 0 !important;
+    transform: scale(0.96) translateY(-30px) !important;
+    pointer-events: none !important; 
+    
+    /* Use the matching precise transition curve */
+    transition: opacity 300ms cubic-bezier(0.25, 1, 0.5, 1), 
+                transform 300ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+</style>
+    <div id="container">
+        <div id="map"></div>
+        <div id="ui-layer"></div>
+    </div>
+
+   <script type="module">
+        // 📦 1. EXPLICIT ENGINE IMPORTS (Declared exactly once)
+        import { initializeRoute, updateVehicleFrame } from './map_engine.js';
+        import { displayPhotoCard, clearPhotoCard } from './ui_manager.js';
+
+        // 🗺️ 2. MAP ROOT ENGINE MOUNTING
+        // Initialize open-source Leaflet engine mapping infrastructure
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false,
+            fadeAnimation: true,
+            zoomAnimation: true
+        }).setView([46.0, 7.0], 8); 
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20
+        }).addTo(map);
+
+        console.log("🚀 Open-source map engine mounted completely free of credentials.");
+
+        // 🧮 3. MATHEMATICAL CORE UTILITIES
+        /**
+         * Computes heading tracking angles between coordinates to deduce car rotation
+         */
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const lat1Rad = lat1 * Math.PI / 180;
+            const lat2Rad = lat2 * Math.PI / 180;
+            const y = Math.sin(dLon) * Math.cos(lat2Rad);
+            const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+            const brng = Math.atan2(y, x) * 180 / Math.PI;
+            return (brng + 360) % 360;
+        }
+
+        // 🎞️ 4. TIMELINE SEQUENCER ENGINE ARCHITECTURE
+            // --- Inside index.html -> Find this block around Line 51 ---
+        async function runTimelineEngine() {
+            try {
+                // 🎯 CHANGE 'container' TO 'ui-layer' HERE:
+                const uiContainer = document.getElementById('ui-layer');
+                if (!uiContainer) {
+                    throw new Error("❌ Critical Initialization Defect: DOM element #ui-layer not found!");
+                }
+
+                // Change your old state trackers to these explicit tracking variables:
+                let currentCoordIdx = 0;
+                let activeBundleIdx = 0;
+                let frameClock = null;
+
+                // 💎 THE FIXED OVERLAP POINTERS
+                let cardMountedForCurrentLeg = false;
+                let currentOnScreenCard = null;  // Keeps track of the newest card
+                let fadingBackgroundCard = null; // Keeps track of the card that is melting away
+
+                const routeRes = await fetch('/data/route_geometry.json');
+                const masterPath = await routeRes.json(); 
+
+                const tripRes = await fetch('/data/bundled_trip.json');
+                const bundledTimeline = await tripRes.json();
+
+                console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] %c[CINEMATIC ENGINE] 🎞️ Rolling timeline active over ${masterPath.length} coordinates.`, "color: #ff2d55; font-weight: bold;");
+                
+                // Draw map route layers
+                initializeRoute(map, masterPath);
+
+                const totalStops = bundledTimeline.length;
+                const nodesPerSegment = Math.floor(masterPath.length / totalStops);
+
+                let activeCardElement = null;
+
+                const tick = async () => {
+                    if (activeBundleIdx >= bundledTimeline.length) {
+                        clearInterval(frameClock);
+                        console.log("%c[CINEMATIC ENGINE] 🏁 Video compilation complete.", "color: #00ff66; font-weight: bold;");
+                        if (window.captureFrameSignal) await window.captureFrameSignal('COMPLETE');
+                        return;
+                    }
+
+                    const currentStopGroup = bundledTimeline[activeBundleIdx];
+                    const segmentStartIdx = activeBundleIdx * nodesPerSegment;
+                    const targetStopIdx = (activeBundleIdx === totalStops - 1) ? masterPath.length - 1 : (activeBundleIdx + 1) * nodesPerSegment;
+
+                    // Compute progress of this specific driving leg segment
+                    const segmentTotalNodes = targetStopIdx - segmentStartIdx;
+                    const segmentProgressNodes = currentCoordIdx - segmentStartIdx;
+                    const progressPercent = (segmentProgressNodes / Math.max(1, segmentTotalNodes)) * 100;
+
+
+                    // MIDPOINT TRIGGER: Show photo decks at 50% leg progress
+                    if (progressPercent >= 50 && !cardMountedForCurrentLeg) {
+                        console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [3] %c[ENGINE] 🌄 Midpoint reached for segment ${activeBundleIdx} (${currentStopGroup[0].location_name})`);
+                        
+                        if (currentOnScreenCard) {
+                            const oldCardRef = currentOnScreenCard;
+                            
+                            // 🔍 Read the element state live
+                            console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [4] [DOM TRACK] Applied classes before fading out: ${oldCardRef.className} (${oldCardRef.location_name})`);
+
+                            oldCardRef.classList.remove('active');
+                            oldCardRef.classList.add('fading-out');
+
+                            // 🔍 Read the element state live
+                            console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [4] [DOM TRACK] Applied classes: ${oldCardRef.className}`);
+
+                            setTimeout(() => {
+                                // Confirm the class was still there at death
+                                console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [5] [DOM GARBAGE] Removing card with classes: ${oldCardRef.className} (${oldCardRef.location_name})`);
+                                oldCardRef.remove();
+                            }, 350);
+                        }
+                        
+                        // 2. Mount the brand new card into its alternating layout corner
+                        const layoutStyleIdx = activeBundleIdx % 3; 
+
+                        // Using a minor timeout prevents ui_manager from clashing with the old card node
+                        setTimeout(() => {
+                            console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [1] %c[MOUNT] 🎬 Instantiating fresh card layout window at Slot: ${layoutStyleIdx} (${currentStopGroup[0].location_name})`);
+                            currentOnScreenCard = displayPhotoCard(uiContainer, currentStopGroup, layoutStyleIdx);
+                        }, 50);
+
+                        
+                        cardMountedForCurrentLeg = true;
+                    }//if <progressPercent>50
+
+                    // --- 🏎️ UNINTERRUPTED DRIVING TICK LOOP ---
+                    if (currentCoordIdx < targetStopIdx) {
+                        const [lat, lon] = masterPath[currentCoordIdx];
+                        const nextCoordIdx = Math.min(currentCoordIdx + 1, masterPath.length - 1);
+                        const [nextLat, nextLon] = masterPath[nextCoordIdx];
+                        
+                        updateVehicleFrame(map, lat, lon);
+                        
+                        const carElement = document.getElementById('car-pointer');
+                        if (carElement && (lat !== nextLat || lon !== nextLon)) {
+                            const headingDegrees = calculateBearing(lat, lon, nextLat, nextLon);
+                            carElement.style.transform = `rotate(${headingDegrees}deg)`;
+                        }
+
+                        const nodesRemaining = targetStopIdx - currentCoordIdx;
+
+                        // Smooth Pacing Stride Allocation Profile
+                        let strideVelocity;
+                        if (nodesRemaining > 2000) strideVelocity = 65;  
+                        else if (nodesRemaining > 500) strideVelocity = 25; 
+                        else if (nodesRemaining > 50) strideVelocity = 8;   
+                        else strideVelocity = 2;                            
+
+                        currentCoordIdx = Math.min(currentCoordIdx + strideVelocity, targetStopIdx);
+                        if (window.captureFrameSignal) await window.captureFrameSignal('RECORD_TICK');
+                        
+                    } else {
+                        // --- 📍 LEG TRANSITION POINT ---
+                        console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [2] %c[🏁 LEG TRANSITION] 🗺️ Crossed destination boundary at node index ${currentCoordIdx}. (${currentStopGroup[0].location_name}) Advancing legs...`);
+                        activeBundleIdx++;
+                        cardMountedForCurrentLeg = false; 
+                    }
+                };
+
+                frameClock = setInterval(tick, 40);
+
+            } catch (err) {
+                console.error("💥 Cinematic Engine Crash:", err.stack || err.message || err);
+            }
+        }
+
+        // Engage the runtime architecture pipeline
+        runTimelineEngine();
+</script>
+</body>
+</html>

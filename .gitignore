@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Local Media Assets & Photos
+*.jpg
+*.jpeg
+*.png
+*.webp
+static/photos/      # Adjust if your folder path is different
+
+# Operating System garbage
+.DS_Store
+Thumbs.db
+
+# Output videos or renders
+*.mp4
+
+# Generated Data Packages
+src/frontend/data/
+data/
+*.json
