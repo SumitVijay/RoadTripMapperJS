@@ -10,51 +10,6 @@
     <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-<style>
-
-.photo-card {
-    position: absolute;
-    width: 620px;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(30px) saturate(190%);
-    -webkit-backdrop-filter: blur(30px) saturate(190%);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 36px;
-    padding: 24px;
-    box-shadow: 0 30px 70px rgba(0,0,0,0.35);
-    z-index: 5000;
-
-    /* 💎 Hardware acceleration layer trigger */
-    will-change: opacity, transform; 
-    
-    /* 🎬 Base state is completely hidden */
-    opacity: 0;
-    transform: scale(0.93) translateY(30px);
-    
-    /* Smooth transition parameters */
-    transition: opacity 300ms cubic-bezier(0.25, 1, 0.5, 1), 
-                transform 300ms cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* 🏁 ENTRANCE STATE */
-.photo-card.active {
-    opacity: 1 !important;
-    transform: scale(1) translateY(0) !important;
-}
-
-
-/* 🏁 EXIT STATE */
-.photo-card.fading-out {
-    opacity: 0 !important;
-    transform: scale(0.96) translateY(-30px) !important;
-    pointer-events: none !important; 
-    
-    /* Use the matching precise transition curve */
-    transition: opacity 300ms cubic-bezier(0.25, 1, 0.5, 1), 
-                transform 300ms cubic-bezier(0.25, 1, 0.5, 1) !important;
-}
-
-</style>
     <div id="container">
         <div id="map"></div>
         <div id="ui-layer"></div>
@@ -159,6 +114,7 @@
                             console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [4] [DOM TRACK] Applied classes before fading out: ${oldCardRef.className} (${oldCardRef.location_name})`);
 
                             oldCardRef.classList.remove('active');
+                            void oldCardRef.offsetHeight; // Force reflow to ensure the class removal is registered before adding the fading-out class
                             oldCardRef.classList.add('fading-out');
 
                             // 🔍 Read the element state live
@@ -168,7 +124,7 @@
                                 // Confirm the class was still there at death
                                 console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [5] [DOM GARBAGE] Removing card with classes: ${oldCardRef.className} (${oldCardRef.location_name})`);
                                 oldCardRef.remove();
-                            }, 350);
+                            }, 400);
                         }
                         
                         // 2. Mount the brand new card into its alternating layout corner

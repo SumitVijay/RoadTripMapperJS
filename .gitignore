@@ -19,5 +19,4 @@ Thumbs.db
 
 # Generated Data Packages
 src/frontend/data/
-data/
-*.json
+data/*.json

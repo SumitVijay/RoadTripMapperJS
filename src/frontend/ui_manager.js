@@ -53,8 +53,11 @@ export function displayPhotoCard(containerElement, photoGroup, layoutStyleIdx) {
     containerElement.appendChild(card);
     //
 
+    
     // 5. ⏳ A synchronous micro-delay to separate mounting from layout calculations.
     // This allows the browser to capture opacity: 0 first, then trigger the smooth 900ms transition up to 1.
+
+    void card.offsetHeight; // Force reflow to ensure the initial styles are registered before adding the active class
     setTimeout(() => {
          card.classList.add('active');
      }, 50);
