@@ -65,6 +65,7 @@
                 let frameClock = null;
                 let cardMountedForCurrentLeg = false;
                 let totalRenderedFrames = 0;
+                const SPEED_MULTIPLIER = 0.5; // 💾 Place it here! (0.3 = ~3x longer video)
 
                 // 📡 API PIPELINE INITIALIZATION
                 console.log("[DIAGNOSTIC] 📡 Attempting to fetch route geometry dataset...");
@@ -83,7 +84,6 @@
                 }
 
                 initializeRoute(map, masterPath);
-                console.log("✅ DIAGNOSTIC: Leaflet map layout vector paths initialized.");
 
                 const totalStops = bundledTimeline.length;
                 const nodesPerSegment = Math.floor(masterPath.length / totalStops);
@@ -95,7 +95,7 @@
                     if (activeBundleIdx >= bundledTimeline.length) {
                         clearInterval(frameClock);
                         console.log("%c[FINAL] 🏁 Video compilation complete.", "color: #00ff66; font-weight: bold;");
-                        //document.querySelectorAll('.photo-card').forEach(card => card.remove());
+                        document.querySelectorAll('.photo-card').forEach(card => card.remove());
                         if (window.captureFrameSignal) await window.captureFrameSignal('COMPLETE');
                         return;
                     }
@@ -109,127 +109,87 @@
                     const segmentTotalNodes = targetStopIdx - segmentStartIdx;
                     const segmentProgressNodes = currentCoordIdx - segmentStartIdx;
                     const progressPercent = (segmentProgressNodes / Math.max(1, segmentTotalNodes)) * 100;
+                    
+                    const nodesRemaining = targetStopIdx - currentCoordIdx;
 
-                    // 🌄 MIDPOINT TRIGGER GATE (Defensively Locked)
+                    // 🏎️ 1. CALCULATE STRIDE VELOCITY FIRST (Upfront & Configurable)
+                    let baseStride;
+                    if (nodesRemaining > 2000) {
+                        baseStride = 65;  // Highway sprint
+                    } else if (nodesRemaining > 500) {
+                        baseStride = 25;  // Approaching leg
+                    } else if (nodesRemaining > 50) {
+                        baseStride = 8;   // Deceleration crawl
+                    } else {
+                        baseStride = 2;   // Final parking step
+                    }
+
+                    // Apply your dynamic global multiplier
+                    const strideVelocity = Math.max(1, Math.round(baseStride * SPEED_MULTIPLIER));
+
+
+                    // 🌄 2. MIDPOINT TRIGGER GATE (Now has clean access to strideVelocity)
                     if (progressPercent >= 50 && !cardMountedForCurrentLeg) {
                         cardMountedForCurrentLeg = true;
 
-                        const layoutStyleIdx = activeBundleIdx % 4;
-                        const nodesRemaining = targetStopIdx - currentCoordIdx;
-
-                        // ➕ ADD A BONUS WINDOW (e.g., +150 frames)
-                        // This forces the card to survive long enough to meet the next leg's card!
-                        const estimatedFramesLeft = Math.ceil(nodesRemaining / 8) + 150;
+                        const layoutStyleIdx = activeBundleIdx % 4; // 4-corner loop configuration
+                        
+                        // Calculate perfectly proportional frames based on our upfront velocity
+                        const rawFramesLeft = Math.ceil(nodesRemaining / strideVelocity);
+                        const estimatedFramesLeft = Math.min(350, rawFramesLeft); 
 
                         try {
-                            console.log(
-                                `%c[LIFECYCLE - MOUNT] Frame: ${totalRenderedFrames} | ` +
-                                `Leg: ${activeBundleIdx + 1} | ` +
-                                `Location: ${currentStopGroup[0].location_name} | ` +
-                                `Calculated Card Lifespan: ${estimatedFramesLeft} frames`,
-                                "color: #ff9500; font-weight: bold; background: #221600; padding: 2px 5px; border-radius: 3px;"
-                            );
-
-                            // 🔑 FIX: Pass estimatedFramesLeft right here!
+                            console.log(`[ENGINE] 📸 Mounting card for Leg ${activeBundleIdx + 1}. Velocity: ${strideVelocity} | Lifespan: ${estimatedFramesLeft}f`);
                             displayPhotoCard(uiContainer, currentStopGroup, layoutStyleIdx, totalRenderedFrames, estimatedFramesLeft);
-
                         } catch (uiError) {
-                            console.error("⚠️ UI Manager instantiation caught inside safe wrapper:", uiError.message);
+                            console.error("⚠️ UI Manager instantiation failed:", uiError.message);
                         }
                     }
 
-                    // 🛡️ FRAME-BASED LIFECYCLE MONITOR
-                    const activeCards = document.querySelectorAll('.photo-card');
+
+                    // 🛡️ 3. THE FRAME LIFECYCLE MONITOR & GARBAGE COLLECTOR
+                    const activeCards = document.querySelectorAll('.photo-card:not(.fading-out)');
                     activeCards.forEach(card => {
                         const fadeFrameTarget = parseInt(card.dataset.fadeFrame);
-                        const removeFrameTarget = parseInt(card.dataset.removeFrame);
-
-                        // Skip tracking entirely if dataset stamps failed to generate cleanly
-                        if (isNaN(fadeFrameTarget) || isNaN(removeFrameTarget)) return;
-
-                        // 📊 CRITICAL FADE MATCH LOG
-                        // If the engine clock hits the precise fade marker frame, trigger the CSS transition
-                        if (totalRenderedFrames === fadeFrameTarget) {
+                        if (!isNaN(fadeFrameTarget) && totalRenderedFrames === fadeFrameTarget) {
                             card.classList.add('fading-out');
                             card.classList.remove('active');
-                            console.log(`%c[FRAME ENGINE - ACTION] Match hit at frame ${totalRenderedFrames}. Initiating fade on active card node.`, "color: #5ac8fa; font-weight: bold;");
                         }
-                        // 📊 CRITICAL PURGE MATCH LOG
-                        if (totalRenderedFrames >= removeFrameTarget) {
-                            card.remove();
-                            console.log(
-                                `%c[LIFECYCLE - PURGE] Frame: ${totalRenderedFrames} | ` +
-                                `Target Dead Frame: ${removeFrameTarget} | ` +
-                                `Node successfully deleted from DOM.`,
-                                "color: #ff3b30; font-weight: bold; background: #2f0505; padding: 2px 5px; border-radius: 3px;"
-                            );
-                        }
-
-                        // 🗑️ Separate Garbage Collector for elements already fading out
-                        // This handles the physical DOM removal completely independently
-                        document.querySelectorAll('.photo-card.fading-out').forEach(card => {
-                            const removeFrameTarget = parseInt(card.dataset.removeFrame);
-                            if (!isNaN(removeFrameTarget) && totalRenderedFrames >= removeFrameTarget) {
-                                card.remove();
-                                console.log(`%c[FRAME ENGINE - GARBAGE] Frame ${totalRenderedFrames} >= ${removeFrameTarget}. Asset purged from memory.`, "color: #ff3b30; font-weight: bold;");
-                            }
-                        });
                     });
 
-                    // 🏎️ UNINTERRUPTED DRIVING TICK PROFILE
+                    document.querySelectorAll('.photo-card.fading-out').forEach(card => {
+                        const removeFrameTarget = parseInt(card.dataset.removeFrame);
+                        if (!isNaN(removeFrameTarget) && totalRenderedFrames >= removeFrameTarget) {
+                            card.remove();
+                        }
+                    });
+
+
+                    // 🚗 4. VEHICLE DRIVING STEP
                     if (currentCoordIdx < targetStopIdx) {
                         const [lat, lon] = masterPath[currentCoordIdx];
                         const nextCoordIdx = Math.min(currentCoordIdx + 1, masterPath.length - 1);
                         const [nextLat, nextLon] = masterPath[nextCoordIdx];
-
+                        
                         updateVehicleFrame(map, lat, lon);
-
+                        
+                        // ✅ FIXED: Safely fetch the DOM element first
                         const carElement = document.getElementById('car-pointer');
+                        
                         if (carElement && (lat !== nextLat || lon !== nextLon)) {
                             const headingDegrees = calculateBearing(lat, lon, nextLat, nextLon);
                             carElement.style.transform = `rotate(${headingDegrees}deg)`;
                         }
 
-                        // 🏎️ CONFIGURABLE VELOCITY PROFILE (Scales perfectly with SPEED_MULTIPLIER)
-                        const nodesRemaining = targetStopIdx - currentCoordIdx;
-                        let baseStride;
-
-                        if (nodesRemaining > 2000) {
-                            baseStride = 65;  // Baseline highway sprint
-                        } else if (nodesRemaining > 500) {
-                            baseStride = 25;  // Baseline approaching leg
-                        } else if (nodesRemaining > 50) {
-                            baseStride = 8;   // Baseline deceleration crawl
-                        } else {
-                            baseStride = 2;   // Baseline final parking step
-                        }
-
-                        // 🎛️ GLOBAL VIDEO CINEMATIC CONTROLS
-                        // 1.0 = Default baseline speed (~0.5 sec per leg video)
-                        // 0.5 = Half speed (Doubles the video length to ~28 seconds)
-                        // 0.2 = One-fifth speed (5x longer video, ~1 minute 10 seconds)
-                        const SPEED_MULTIPLIER = 0.4;
-                        // 🧮 Scale the final velocity dynamically, ensuring it never drops below 1 node per tick
-                        const strideVelocity = Math.max(1, Math.round(baseStride * SPEED_MULTIPLIER));
-
+                        // Drive forward using the velocity calculated at the top
                         currentCoordIdx = Math.min(currentCoordIdx + strideVelocity, targetStopIdx);
-
-
                         if (window.captureFrameSignal) await window.captureFrameSignal('RECORD_TICK');
-                     } else {
-                        // 📍 LEG TRANSITION BOUNDARY CROSSING
-                        console.log(
-                            `%c[LIFECYCLE - TRANSITION] Frame: ${totalRenderedFrames} | ` +
-                            `🏁 Leg ${activeBundleIdx + 1} finished at node index ${currentCoordIdx}. ` +
-                            `Advancing loop bounds naturally...`,
-                            "color: #34c759; font-weight: bold; background: #0b2f12; padding: 2px 5px; border-radius: 3px;"
-                        );
-
-                        // ✅ FIXED: The Overlap Shield code has been removed.
-                        // Cards are now completely free to sit still on screen across multiple legs!
-
+                        
+                    } else {
+                        // 📍 LEG TRANSITION BOUNDARY CROSSING (Clean layout preservation)
+                        console.log(`%c[LIFECYCLE - TRANSITION] Frame: ${totalRenderedFrames} | 🏁 Leg ${activeBundleIdx + 1} finished.`, "color: #34c759; font-weight: bold;");
                         activeBundleIdx++;
-                        cardMountedForCurrentLeg = false;
+                        cardMountedForCurrentLeg = false; 
                     }
                 };
 
