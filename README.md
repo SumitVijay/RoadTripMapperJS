@@ -2,52 +2,30 @@
 
 ## Overview
 
-The Cinematic Road Trip Mapper is a web-based application that generates a cinematic video showcasing a road trip journey. The application uses a combination of open-source libraries and custom code to create a seamless and visually appealing experience.
+The Cinematic Road Trip Mapper is a web-based toolchain that compiles raw geographic milestones into a high-fidelity, animated driving itinerary video. By running a headless browser automation pipeline, it tracks a vehicle's motion across a customized map canvas, mounts dynamic photo gallery interfaces during key route intervals, and renders the entire output into a compressed video package.
 
 ## Features
 
-* Generates a cinematic video showcasing a road trip journey
-* Uses Leaflet.js for map rendering and routing
-* Utilizes Puppeteer for headless browser automation
-* Supports custom photo and location data
+* **Automation Video Compilation:** Automatically generates a high-quality `.mp4` video capturing the complete map tour.
+* **Open-Source Map Canvas:** Uses Leaflet.js to map paths and calculate real-time vehicle orientation angles entirely credential-free.
+* **Asynchronous Timeline Layering:** Drives asset generation at precise route midpoint intervals via a dual-layered coordinate tracking loop.
+* **Headless Capture Pipeline:** Utilizes Puppeteer to execute frame-by-frame canvas capture synchronized with an asset deployment timeline.
 
 ## Requirements
 
-* Node.js (version 14 or later)
-* npm (version 6 or later)
+### System Core Tools
+* **Node.js** (v18.0.0 or higher recommended)
+* **Python 3.x** (Required for timeline pre-processing)
+* **FFmpeg** (Must be accessible via your system's global environment PATH)
+
+### FFmpeg Quick Setup
+* **macOS:** `brew install ffmpeg`
+* **Linux:** `sudo apt install ffmpeg`
+* **Windows:** `winget install Gyan.FFmpeg`
 
 ## Installation
 
-1. Clone the repository: `git clone https://github.com/your-username/cinematic-road-trip-mapper.git`
-2. Install dependencies: `npm install`
-3. Run the application: `npm start`
-
-## Usage
-
-1. Open a web browser and navigate to `http://localhost:3000`
-2. The application will generate a cinematic video showcasing a road trip journey
-3. Customize the photo and location data to create your own road trip video
-
-## Contributing
-
-Contributions are welcome! If you'd like to contribute to the project, please fork the repository and submit a pull request.
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-* Leaflet.js: A popular JavaScript library for interactive maps
-* Puppeteer: A Node.js library developed by the Chrome team that provides a high-level API to control headless Chrome
-* Open-source community: For providing valuable feedback and support
-
-## Known Issues
-
-* None reported
-
-## Future Development
-
-* Add support for more map providers
-* Improve performance and stability
-* Enhance customization options
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/SumitVijay/RoadTripMapperJS.git](https://github.com/SumitVijay/RoadTripMapperJS.git)
+   cd RoadTripMapperJS

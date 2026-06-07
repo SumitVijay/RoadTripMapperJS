@@ -111,7 +111,7 @@
                             const oldCardRef = currentOnScreenCard;
                             
                             // 🔍 Read the element state live
-                            console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [4] [DOM TRACK] Applied classes before fading out: ${oldCardRef.className} (${oldCardRef.location_name})`);
+                            console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [4] [DOM TRACK] Applied classes before fading out: ${oldCardRef.className}  `);
 
                             oldCardRef.classList.remove('active');
                             void oldCardRef.offsetHeight; // Force reflow to ensure the class removal is registered before adding the fading-out class
@@ -122,7 +122,7 @@
 
                             setTimeout(() => {
                                 // Confirm the class was still there at death
-                                console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [5] [DOM GARBAGE] Removing card with classes: ${oldCardRef.className} (${oldCardRef.location_name})`);
+                                console.log(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] [5] [DOM GARBAGE] Removing card with classes: ${oldCardRef.className}  `);
                                 oldCardRef.remove();
                             }, 400);
                         }
