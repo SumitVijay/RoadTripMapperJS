@@ -1,0 +1,18 @@
+{
+  "name": "road-trip-mapper",
+  "version": "1.0.0",
+  "description": "Professional 3D Mapbox Video Generation Pipeline",
+  "main": "src/backend/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/backend/app.js",
+    "dev-ui": "node src/backend/server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2",
+    "puppeteer": "^22.15.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
