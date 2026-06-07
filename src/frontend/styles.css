@@ -79,6 +79,7 @@ body {
 .pos-top-right    { top: 140px; right: 50px; }
 .pos-top-left     { top: 140px; left: 50px; }
 .pos-bottom-right { bottom: 140px; right: 50px; }
+.pos-bottom-left { bottom: 140px; left: 50px;}
 
 /* Dynamic Image Presentation Grid */
 .gallery-grid { display: grid; gap: 16px; width: 100%; }

@@ -1,23 +1,29 @@
 /**
- * UI Manager Subsystem - Handles clean HTML node creation for the photo timeline deck
- * All visual attributes are strictly controlled via src/frontend/styles.css
+ * Cinematic Road Trip Mapper - UI Asset Subsystem
+ * File: src/frontend/ui_manager.js
  */
 
 /**
- * Dynamically mounts and transitions a group of photos onto the map viewport layout canvas
- * @param {HTMLElement} containerElement - The canvas UI element wrapper holding layout overlays
- * @param {Array} photoGroup - Array of photo objects belonging to the current stop cluster leg
- * @param {Number} layoutStyleIdx - Index defining spatial corner anchor assignments (0, 1, or 2)
- * @returns {HTMLElement} The mounted card element reference for state retention tracking
+ * Instantiates a fresh editorial photo card asset into the DOM tree
+ * and configures its frame-based lifecycle markers.
+ * * @param {HTMLElement} containerElement - The DOM container (#ui-layer) where the card mounts.
+ * @param {Array} photoGroup - Array of image objects containing filepaths and metadata.
+ * @param {number} layoutStyleIdx - Index used to alternate CSS placement classes.
+ * @param {number} currentTick - The current master frame count from index.html.
  */
-export function displayPhotoCard(containerElement, photoGroup, layoutStyleIdx) {
+export function displayPhotoCard(containerElement, photoGroup, layoutStyleIdx, currentTick = 0, framesLeft) {
     // 1. Create base container card element
     const card = document.createElement('div');
     card.className = 'photo-card';
 
-    // 2. Map positional markers using the alternating classes defined in styles.css
-    const positionClasses = ['pos-top-right', 'pos-top-left', 'pos-bottom-right'];
+    // 2. 🔄 UPDATED POSITIONAL MARKERS: Alternating layouts across the 3 remaining corners
+    // Slot 0 (Leg 1) -> Top-Right
+    // Slot 1 (Leg 2) -> Bottom-Left  
+    // Slot 2 (Leg 3) -> Top-Left
+    // Slot 3 (Leg 4) -> Bottom-Right     
+    const positionClasses = ['pos-top-right', 'pos-bottom-left', 'pos-top-left', 'pos-bottom-right'];
     card.classList.add(positionClasses[layoutStyleIdx] || 'pos-top-right');
+
 
     // 3. Frame photo grid layouts safely based on total available images
     const photoCount = Math.min(photoGroup.length, 3);
@@ -51,27 +57,36 @@ export function displayPhotoCard(containerElement, photoGroup, layoutStyleIdx) {
     card.appendChild(meta);
     
     containerElement.appendChild(card);
-    //
 
-    
-    // 5. ⏳ A synchronous micro-delay to separate mounting from layout calculations.
-    // This allows the browser to capture opacity: 0 first, then trigger the smooth 900ms transition up to 1.
+    // 5. Force immediate hardware reflow so browser registers opacity: 0 state before transition
+    void card.offsetHeight; 
+    card.classList.add('active');
 
-    void card.offsetHeight; // Force reflow to ensure the initial styles are registered before adding the active class
-    setTimeout(() => {
-         card.classList.add('active');
-     }, 50);
+    // 🔑 6. THE DETERMINISTIC FIXED OVERLAP POINTERS
+    // We use the custom calculated framesLeft instead of a hardcoded 75 frames!
+    const FADE_OUT_DURATION = 12; // 12 frames to execute CSS opacity fade (~500ms)
 
+    // Fallback protection: ensure the card lives for at least 80 ticks on tiny segments
+    const dynamicLifespan = Math.max(80, framesLeft); 
+
+    // The card stays fully active for the leg, then fades out right as the car finishes the leg
+    card.dataset.fadeFrame = currentTick + (dynamicLifespan - FADE_OUT_DURATION);
+    card.dataset.removeFrame = currentTick + dynamicLifespan;
+
+    console.log(`[UI MASTER] 🎫 Card stamped. Spawn: ${currentTick} | Fade Target: ${card.dataset.fadeFrame} | Die Target: ${card.dataset.removeFrame}`);
+
+    return card;
     return card; 
 }
 
 /**
- * Triggers an immediate slide transition fade fallback when old assets step down
+ * Legacy cleanup fallback. 
+ * (Maintained for backwards compatibility; loops natively handle garbage collection via dataset targets)
  */
 export function clearPhotoCard(containerElement) {
     const activeCards = containerElement.querySelectorAll('.photo-card:not(.fading-out)');
     activeCards.forEach(card => {
         card.classList.add('fading-out');
-        setTimeout(() => card.remove(), 900);
+        card.remove();
     });
 }

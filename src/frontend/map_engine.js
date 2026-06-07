@@ -27,9 +27,6 @@ export function initializeRoute(map, coordinates) {
         lineCap: 'round'
     }).addTo(map);
 
-    // Inside src/frontend/map_engine.js -> initializeRoute method
-// Replace the old carMarker assignment with this rotatable HTML Element icon:
-
 carMarker = L.marker(coordinates[0], {
     icon: L.divIcon({
         className: 'custom-car-vehicle',
